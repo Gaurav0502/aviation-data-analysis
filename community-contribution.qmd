@@ -8,21 +8,21 @@ editor: visual
 
 ## Background
 
-Data Manipulation is a very important step performing any kind of analysis. It allows us to alter the structure of the data and helps to derive additional data from the existing data. Without proper data manipulation, the quality of analysis or visualizations can get compromised. In R, `dplyr` is one of the most popular and effective data manipulation libraries. Moreover, SQL is also another language that is dedicated to handle and manipulate data. Almost all the operations that can be done with SQL select queries can be translated into an equivalent logic written with the help of the `dplyr` library.
+Data Manipulation is a very important step before performing any kind of analysis. It allows us to alter the structure of the data and helps to derive additional data from the existing data. Without proper data manipulation, the quality of analysis or visualizations can get compromised. In R, `dplyr` is one of the most popular and effective data manipulation libraries. Moreover, SQL is also another language that is dedicated to handle and manipulate data. Almost all the operations that can be done with SQL queries can be translated into an equivalent logic written with the help of the `dplyr` library.
 
 In this notebook, I have used the `anyflights` package to retrieve some data pertaining to the on-time performance of flights departing out of all the three airports serving the New York City (NYC) region (i.e. LGA, JFK, and EWR). This package is a great open-source resource for aviation data since it queries the annual flight data released by Federal Aviation Administration (FAA). Moreover, it can be used for performing geo-spatial and time-series data analysis.
 
-Five questions are formulated based on the retrieved data and data manipulation is performed by writing SQL select queries for them. In addition to data manipulation, simple additional plots are also made to visualization the data obtained as a result of the select queries.
+Five questions are formulated based on the retrieved data and data manipulation is performed by writing SQL select queries for them. In addition to data manipulation, simple plots are also made to visualize the data obtained as a result of the select queries.
 
 ## Installations
 
 This notebook explores two new packages in R. These include the following:
 
-1.  `anyflights` : It is package that provides useful information about the arrival and departure delays of flights (within the United States). It queries the yearly data released by the Federal Aviation Administration (FAA). In addition to the flight on-time performance, it also provides information about the aircraft information (such as `tail number`, `manufacturer`, and `model name`), weather information (such as `visibility` and precipitation), airline metadata, and airport metadata.
+1.  `anyflights` : It is a package that provides useful information about the arrival and departure delays of flights (within the United States). It queries the yearly data released by the Federal Aviation Administration (FAA). In addition to the flight on-time performance, it also provides information about the aircraft information (such as `tail number`, `manufacturer`, and `model name`), weather information (such as `visibility` and precipitation), airline metadata, and airport metadata.
 
     (ref: [https://cran.rproject.org/web/packages/anyflights/anyflights.pdf](https://cran.r-project.org/web/packages/anyflights/anyflights.pdf))
 
-2.  `sqldf` : It is package that allows to write SQL *select* queries on data frames. The package has only one function which is `sqldf()` and it takes one required argument, the SQL query. It is one of the simplest ways to execute SQL queries on data frames in R.
+2.  `sqldf` : It is a package that allows to write SQL *select* queries on data frames. The package has only one function which is `sqldf()` and it takes one required argument, the SQL query. It is one of the simplest ways to execute SQL queries on data frames in R.
 
     (ref: <https://cran.r-project.org/web/packages/sqldf/sqldf.pdf>)
 
@@ -47,7 +47,7 @@ library(DBI)
 
 ## Obtaining the data
 
-The `anyflights` package has three required arguments as follows:
+The `anyflights()` has three required arguments as follows:
 
 1.  `station` : The origin airport(s). This can be a single value or a list of values.
 
@@ -55,10 +55,14 @@ The `anyflights` package has three required arguments as follows:
 
 3.  `month` : The month(s) for which the data is required. This can be a single value or a list of values.
 
+Note: The fetching and processing of the data takes significant amount of time. Hence, increasing the default `timeout` of 60 seconds using the `timeout` argument of `options()` can be helpful to omit a chance of timeout while obtaining the data.
+
 ```{r}
 # options(timeout = 120)
 # nycflights23 <- anyflights(c("JFK", "LGA", "EWR"), 2023, c(1,2))
 ```
+
+All the data is stored in `.csv` files to avoid repeated API calls.
 
 ```{r}
 # write.csv(x = nycflights23$flights, file = "flights.csv")
@@ -72,7 +76,7 @@ planes <- read.csv(file = "planes.csv")
 weather <- read.csv(file = "weather.csv")
 ```
 
-An interesting feature of the `anyflights` package is that after loading the data, it can be converted to be used as a package for future use.
+An interesting feature of the `anyflights` package is that after loading the data, it can be converted to be used as a package for future use. However, this works only for the current session.
 
 ```{r}
 # as_flights_package(nycflights23)
@@ -80,7 +84,7 @@ An interesting feature of the `anyflights` package is that after loading the dat
 
 ## Revisiting SQL
 
-SQL stands for Structured Query Language and it used to store relational data. Any entry in the table must be uniquely identifiable with primary key that can include a single column or more than one column. Any table can have one or more than one foreign key that can help retrieve relevant information from other tables as and when required. Moreover, these foreign key are often used to consolidate two or more table together with the help of the concept of joins.
+SQL stands for Structured Query Language and it is used to store relational data. Any entry in the table must be uniquely identifiable with primary key that can include a single column or more than one column. Any table can have one or more than one foreign key that can help retrieve relevant information from other tables as and when required. Moreover, these foreign keys are often used to consolidate two or more tables together with the help of the concept of joins.
 
 Select queries in SQL are data control statements since they only retrieve the data and do not perform any modifications to it. The typical structure of a select query includes the following keywords:
 
@@ -88,51 +92,55 @@ Select queries in SQL are data control statements since they only retrieve the d
 
 2.  `FROM <table>` : The *from* keyword tells which table will be queried. Here, `<table>` is the placeholder for the table that will be queried. `<table>` often includes a keyword `JOIN` that combines two or more tables together based on a *join predicate* generally includes conditions on the foreign keys that make the tables related to each other.
 
-3.  ``` GROUP BY``<col1>, <col2>, ... ``` : The *group by* keyword is used to arrange columns in the form of groups and apply aggregate functions on them.
+3.  `WHERE <condition>` : The `where` keyword filters the results based on the given condition(s).
 
-4.  ``` ORDER BY``<col1>, <col2>, ... ``` : The *order by* keyword is used to sort the rows based on the columns mentioned after it. Here, `<col1>` and `<col2>` are the columns that will be used to the results obtained after the query execution. By default, the values are sorted in ascending order. However, if descending order is preferred then the column name can be succeeded by `DESC` .
+4.  `GROUP BY <col1>, <col2>, ...` : The *group by* keyword is used to arrange columns in the form of groups and apply aggregate functions on them.
 
-5.  `AS` : The *as* keyword is used to alias column and table names.
+5.  `ORDER BY <col1>, <col2>, ...` : The *order by* keyword is used to sort the rows based on the columns mentioned after it. Here, `<col1>` and `<col2>` are the columns that will be used to the results obtained after the query execution. By default, the values are sorted in ascending order. However, if descending order is preferred then the column name can be succeeded by `DESC` .
 
-6.  `WITH` : The *with* keyword allows to store results of a select query so that it can be used multiple times in the main select query.
+6.  `AS` : The *as* keyword is used to alias column and table names.
 
-7.  `COUNT()`, `AVG()`, `ROUND()` : These are aggregate functions and must be used along with `GROUP BY`
+7.  `WITH` : The *with* keyword allows to store results of a select query so that it can be used multiple times in the main select query.
 
-There are a plethora of other keywords and functions that can be used inside select queries in SQL.
+8.  `COUNT()`, `AVG()`, `ROUND()` : These are aggregate functions and must be used along with `GROUP BY`
+
+There are a plethora of other keywords (such as `HAVING`) and functions that can be used inside select queries in SQL.
 
 ## Background for on-time performance for flights
 
-With reference to aviation industry, **on-time** performance deals how well the flight abides to its designated schedule. This leads to three cases as follows:
+With reference to the aviation industry, **on-time** performance deals with how well the flight abides to its designated schedule. This leads to three cases as follows:
 
--   If the flight overshoots the scheduled departure or arrival time, then it is referred to as late. This implies that a negative `dep_delay` or `arr_delay` means that the flight arrived or departed late.
+-   If the flight overshoots the scheduled departure or arrival time, then it is referred to as late. This implies that a positive `dep_delay` or `arr_delay` means that the flight arrived or departed late.
 
 -   If the flight departs or arrives before schedule, then it is referred to as early. This implies that a negative `dep_delay` or `arr_delay` means that the flight arrived or departed early.
 
 -   If the flight departs or arrives exactly as per the schedule, then it is referred to as on-time. This implies that a zero `dep_delay` or `arr_delay` means that the flight arrived or departed on-time.
 
-A flight can be late for numerous reasons and totally depends on the real-time situation. Most obvious reasons for the delay could be weather-related issues, technical issues related to aircraft equipment, insufficient airport infrastructure, air traffic. Diagnosing the reason behind the delay can be a very challenging task for a computer since there are a lot of factors that come into picture and there might be a totally novel factor that could lead to a flight delay.
+A flight can be late for numerous reasons and totally depends on the real-time situation. Most obvious reasons for the delay could be weather-related issues, technical issues related to aircraft equipment, insufficient airport infrastructure, and busy air traffic. Diagnosing the reason behind the delay can be a very challenging task for a computer since there are a lot of factors that come into picture and there might be a totally novel factor that could lead to a flight delay.
 
-In this notebook, five such common reasons are considered as follows:
+In this notebook, five such common parameters are computed as follows:
 
-1.  Average departure delay of the airport
+1.  Average departure delay of the origin airports
 
-2.  Average arrival delay of the airport
+2.  Average arrival delay of the destination airports
 
-3.  Market share of airline
+3.  Market share of airlines
 
 4.  Age of the aircraft
 
 5.  Visibility of the departure airport
 
-Data is fetched and manipulated to for each of the above cases.
+Data is fetched and manipulated for each of the above cases.
 
 ## Performing data transformation using SQL in R
+
+The `library(nycflights23)` does work properly when the rendering the `.qmd` file.
 
 ```{r}
 # library(nycflights23)
 ```
 
-A remote connection to `SQLite` database is opened by the `dbConnect()` function. The `dbWriteTable()` and `dbReadTable()` are used to copy data frames to the database table. I apply all the functions to the `flights`, `planes`, and `weather` data frames from `nycflights23` .
+A remote connection to `SQLite` database is opened by the `dbConnect()` function. The `dbWriteTable()` and `dbReadTable()` are used to copy data frames into a database table. I apply all the functions to the `flights`, `planes`, and `weather` data frames from `nycflights23` .
 
 ```{r}
 
@@ -149,15 +157,15 @@ weather_tbl = dbReadTable(connection, 'weather')
 
 Let us formulate five questions that will be solved using the SQL with help of `sqldf`.
 
-### Questions
+### Writing SQL queries in R
 
 Q. What is the average departure delay for the airports that serve NYC region?
 
-The `origin` column in the `flights` data frame contains only three airports which serve the New York City region. `COUNT(*)` computes the number of rows for each origin airport (which is nothing but all the flights operated from that airport). `AVG(dep_delay)` computes the average departure delay at each origin airport.
+The `origin` column in the `flights` data frame contains only three airports which serve the New York City region. `COUNT(*)` computes the number of rows for each origin airport (which is nothing but all the flights operated from that airport). `AVG(dep_delay)` computes the average departure delay at each origin airport with help of `GROUP BY` on `origin`.
 
 The values in the result are sorted in descending order of `num_flights`.
 
-Note: SQL is case insensitive but writing the keywords in capital letters is a good practice.
+Note: SQL is case insensitive but writing the keywords in capital letters helps distinguish between keywords or functions and column names.
 
 ```{r}
 # only keeping common airlines
