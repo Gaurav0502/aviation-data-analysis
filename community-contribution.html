@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.4.555">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Gaurav Pendharkar (gsp2136)">
+
+<title>Aviation Data Analysis using SQL and ggplot2</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="community-contribution_files/libs/clipboard/clipboard.min.js"></script>
+<script src="community-contribution_files/libs/quarto-html/quarto.js"></script>
+<script src="community-contribution_files/libs/quarto-html/popper.min.js"></script>
+<script src="community-contribution_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="community-contribution_files/libs/quarto-html/anchor.min.js"></script>
+<link href="community-contribution_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="community-contribution_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="community-contribution_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="community-contribution_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="community-contribution_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Aviation Data Analysis using SQL and ggplot2</h1>
+<p class="subtitle lead">EDAV Community Contribution (Fall 2024)</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Gaurav Pendharkar (gsp2136) </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="background" class="level2">
+<h2 class="anchored" data-anchor-id="background">Background</h2>
+<p>Data Manipulation is a very important step performing any kind of analysis. It allows us to alter the structure of the data and helps to derive additional data from the existing data. Without proper data manipulation, the quality of analysis or visualizations can get compromised. In R, <code>dplyr</code> is one of the most popular and effective data manipulation libraries. Moreover, SQL is also another language that is dedicated to handle and manipulate data. Almost all the operations that can be done with SQL select queries can be translated into an equivalent logic written with the help of the <code>dplyr</code> library.</p>
+<p>In this notebook, I have used the <code>anyflights</code> package to retrieve some data pertaining to the on-time performance of flights departing out of all the three airports serving the New York City (NYC) region (i.e.&nbsp;LGA, JFK, and EWR). This package is a great open-source resource for aviation data since it queries the annual flight data released by Federal Aviation Administration (FAA). Moreover, it can be used for performing geo-spatial and time-series data analysis.</p>
+<p>Five questions are formulated based on the retrieved data and data manipulation is performed by writing SQL select queries for them. In addition to data manipulation, simple additional plots are also made to visualization the data obtained as a result of the select queries.</p>
+</section>
+<section id="installations" class="level2">
+<h2 class="anchored" data-anchor-id="installations">Installations</h2>
+<p>This notebook explores two new packages in R. These include the following:</p>
+<ol type="1">
+<li><p><code>anyflights</code> : It is package that provides useful information about the arrival and departure delays of flights (within the United States). It queries the yearly data released by the Federal Aviation Administration (FAA). In addition to the flight on-time performance, it also provides information about the aircraft information (such as <code>tail number</code>, <code>manufacturer</code>, and <code>model name</code>), weather information (such as <code>visibility</code> and precipitation), airline metadata, and airport metadata.</p>
+<p>(ref: <a href="https://cran.r-project.org/web/packages/anyflights/anyflights.pdf">https://cran.rproject.org/web/packages/anyflights/anyflights.pdf</a>)</p></li>
+<li><p><code>sqldf</code> : It is package that allows to write SQL <em>select</em> queries on data frames. The package has only one function which is <code>sqldf()</code> and it takes one required argument, the SQL query. It is one of the simplest ways to execute SQL queries on data frames in R.</p>
+<p>(ref: <a href="https://cran.r-project.org/web/packages/sqldf/sqldf.pdf" class="uri">https://cran.r-project.org/web/packages/sqldf/sqldf.pdf</a>)</p></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("anyflights")</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="co"># install.packages("sqldf")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="loading-the-required-libraries" class="level2">
+<h2 class="anchored" data-anchor-id="loading-the-required-libraries">Loading the required libraries</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2, <span class="at">quietly =</span> T)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr, <span class="at">quietly =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse, <span class="at">quietly =</span> T)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ forcats   1.0.0     ✔ stringr   1.5.1
+✔ lubridate 1.9.3     ✔ tibble    3.2.1
+✔ purrr     1.0.2     ✔ tidyr     1.3.1
+✔ readr     2.1.5     </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(anyflights, <span class="at">quietly =</span> T)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(RSQLite)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(sqldf)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: gsubfn
+Loading required package: proto</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in doTryCatch(return(expr), name, parentenv, handler): unable to load shared object '/Library/Frameworks/R.framework/Resources/modules//R_X11.so':
+  dlopen(/Library/Frameworks/R.framework/Resources/modules//R_X11.so, 0x0006): Library not loaded: /opt/X11/lib/libSM.6.dylib
+  Referenced from: &lt;31EADEB5-0A17-3546-9944-9B3747071FE8&gt; /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/modules/R_X11.so
+  Reason: tried: '/opt/X11/lib/libSM.6.dylib' (no such file), '/System/Volumes/Preboot/Cryptexes/OS/opt/X11/lib/libSM.6.dylib' (no such file), '/opt/X11/lib/libSM.6.dylib' (no such file), '/Library/Frameworks/R.framework/Resources/lib/libSM.6.dylib' (no such file), '/Library/Java/JavaVirtualMachines/jdk-11.0.18+10/Contents/Home/lib/server/libSM.6.dylib' (no such file)</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>tcltk DLL is linked to '/opt/X11/lib/libX11.6.dylib'
+Could not load tcltk.  Will use slower R code instead.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(DBI)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="obtaining-the-data" class="level2">
+<h2 class="anchored" data-anchor-id="obtaining-the-data">Obtaining the data</h2>
+<p>The <code>anyflights</code> package has three required arguments as follows:</p>
+<ol type="1">
+<li><p><code>station</code> : The origin airport(s). This can be a single value or a list of values.</p></li>
+<li><p><code>year</code> : The year for which the data is required. This can only be a single value.</p></li>
+<li><p><code>month</code> : The month(s) for which the data is required. This can be a single value or a list of values.</p></li>
+</ol>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="co"># options(timeout = 120)</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="co"># nycflights23 &lt;- anyflights(c("JFK", "LGA", "EWR"), 2023, c(1,2))</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(x = nycflights23$flights, file = "flights.csv")</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(x = nycflights23$planes, file = "planes.csv")</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="co"># write.csv(x = nycflights23$weather, file = "weather.csv")</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>flights <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="at">file =</span> <span class="st">"flights.csv"</span>)</span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>planes <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="at">file =</span> <span class="st">"planes.csv"</span>)</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>weather <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(<span class="at">file =</span> <span class="st">"weather.csv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>An interesting feature of the <code>anyflights</code> package is that after loading the data, it can be converted to be used as a package for future use.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="co"># as_flights_package(nycflights23)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="revisiting-sql" class="level2">
+<h2 class="anchored" data-anchor-id="revisiting-sql">Revisiting SQL</h2>
+<p>SQL stands for Structured Query Language and it used to store relational data. Any entry in the table must be uniquely identifiable with primary key that can include a single column or more than one column. Any table can have one or more than one foreign key that can help retrieve relevant information from other tables as and when required. Moreover, these foreign key are often used to consolidate two or more table together with the help of the concept of joins.</p>
+<p>Select queries in SQL are data control statements since they only retrieve the data and do not perform any modifications to it. The typical structure of a select query includes the following keywords:</p>
+<ol type="1">
+<li><p><code>SELECT &lt;col1&gt;, &lt;col2&gt;, ...</code> : The <em>select</em> keyword defines which columns need to be included in the data. Here, <code>&lt;col1&gt;</code> and <code>&lt;col2&gt;</code> are the columns that will be a part of the result obtained after the execution of the query. Other columns will not be included in the result.</p></li>
+<li><p><code>FROM &lt;table&gt;</code> : The <em>from</em> keyword tells which table will be queried. Here, <code>&lt;table&gt;</code> is the placeholder for the table that will be queried. <code>&lt;table&gt;</code> often includes a keyword <code>JOIN</code> that combines two or more tables together based on a <em>join predicate</em> generally includes conditions on the foreign keys that make the tables related to each other.</p></li>
+<li><p><code>GROUP BY``&lt;col1&gt;, &lt;col2&gt;, ...</code> : The <em>group by</em> keyword is used to arrange columns in the form of groups and apply aggregate functions on them.</p></li>
+<li><p><code>ORDER BY``&lt;col1&gt;, &lt;col2&gt;, ...</code> : The <em>order by</em> keyword is used to sort the rows based on the columns mentioned after it. Here, <code>&lt;col1&gt;</code> and <code>&lt;col2&gt;</code> are the columns that will be used to the results obtained after the query execution. By default, the values are sorted in ascending order. However, if descending order is preferred then the column name can be succeeded by <code>DESC</code> .</p></li>
+<li><p><code>AS</code> : The <em>as</em> keyword is used to alias column and table names.</p></li>
+<li><p><code>WITH</code> : The <em>with</em> keyword allows to store results of a select query so that it can be used multiple times in the main select query.</p></li>
+<li><p><code>COUNT()</code>, <code>AVG()</code>, <code>ROUND()</code> : These are aggregate functions and must be used along with <code>GROUP BY</code></p></li>
+</ol>
+<p>There are a plethora of other keywords and functions that can be used inside select queries in SQL.</p>
+</section>
+<section id="background-for-on-time-performance-for-flights" class="level2">
+<h2 class="anchored" data-anchor-id="background-for-on-time-performance-for-flights">Background for on-time performance for flights</h2>
+<p>With reference to aviation industry, <strong>on-time</strong> performance deals how well the flight abides to its designated schedule. This leads to three cases as follows:</p>
+<ul>
+<li><p>If the flight overshoots the scheduled departure or arrival time, then it is referred to as late. This implies that a negative <code>dep_delay</code> or <code>arr_delay</code> means that the flight arrived or departed late.</p></li>
+<li><p>If the flight departs or arrives before schedule, then it is referred to as early. This implies that a negative <code>dep_delay</code> or <code>arr_delay</code> means that the flight arrived or departed early.</p></li>
+<li><p>If the flight departs or arrives exactly as per the schedule, then it is referred to as on-time. This implies that a zero <code>dep_delay</code> or <code>arr_delay</code> means that the flight arrived or departed on-time.</p></li>
+</ul>
+<p>A flight can be late for numerous reasons and totally depends on the real-time situation. Most obvious reasons for the delay could be weather-related issues, technical issues related to aircraft equipment, insufficient airport infrastructure, air traffic. Diagnosing the reason behind the delay can be a very challenging task for a computer since there are a lot of factors that come into picture and there might be a totally novel factor that could lead to a flight delay.</p>
+<p>In this notebook, five such common reasons are considered as follows:</p>
+<ol type="1">
+<li><p>Average departure delay of the airport</p></li>
+<li><p>Average arrival delay of the airport</p></li>
+<li><p>Market share of airline</p></li>
+<li><p>Age of the aircraft</p></li>
+<li><p>Visibility of the departure airport</p></li>
+</ol>
+<p>Data is fetched and manipulated to for each of the above cases.</p>
+</section>
+<section id="performing-data-transformation-using-sql-in-r" class="level2">
+<h2 class="anchored" data-anchor-id="performing-data-transformation-using-sql-in-r">Performing data transformation using SQL in R</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="co"># library(nycflights23)</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>A remote connection to <code>SQLite</code> database is opened by the <code>dbConnect()</code> function. The <code>dbWriteTable()</code> and <code>dbReadTable()</code> are used to copy data frames to the database table. I apply all the functions to the <code>flights</code>, <code>planes</code>, and <code>weather</code> data frames from <code>nycflights23</code> .</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>connection <span class="ot">&lt;-</span> <span class="fu">dbConnect</span>(<span class="fu">SQLite</span>(), <span class="st">""</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(connection, <span class="st">'flights'</span>, flights)</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>flights_tbl <span class="ot">=</span> <span class="fu">dbReadTable</span>(connection, <span class="st">'flights'</span>)</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(connection, <span class="st">'planes'</span>, planes)</span>
+<span id="cb19-6"><a href="#cb19-6" aria-hidden="true" tabindex="-1"></a>planes_tbl <span class="ot">=</span> <span class="fu">dbReadTable</span>(connection, <span class="st">'planes'</span>)</span>
+<span id="cb19-7"><a href="#cb19-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb19-8"><a href="#cb19-8" aria-hidden="true" tabindex="-1"></a><span class="fu">dbWriteTable</span>(connection, <span class="st">'weather'</span>, weather)</span>
+<span id="cb19-9"><a href="#cb19-9" aria-hidden="true" tabindex="-1"></a>weather_tbl <span class="ot">=</span> <span class="fu">dbReadTable</span>(connection, <span class="st">'weather'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>Let us formulate five questions that will be solved using the SQL with help of <code>sqldf</code>.</p>
+<section id="questions" class="level3">
+<h3 class="anchored" data-anchor-id="questions">Questions</h3>
+<p>Q. What is the average departure delay for the airports that serve NYC region?</p>
+<p>The <code>origin</code> column in the <code>flights</code> data frame contains only three airports which serve the New York City region. <code>COUNT(*)</code> computes the number of rows for each origin airport (which is nothing but all the flights operated from that airport). <code>AVG(dep_delay)</code> computes the average departure delay at each origin airport.</p>
+<p>The values in the result are sorted in descending order of <code>num_flights</code>.</p>
+<p>Note: SQL is case insensitive but writing the keywords in capital letters is a good practice.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># only keeping common airlines</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>airlines <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"DL"</span>, <span class="st">"AA"</span>, <span class="st">"UA"</span>, <span class="st">"WN"</span>, <span class="st">"B6"</span>, <span class="st">"YX"</span>)</span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>flights<span class="sc">$</span>carrier <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(flights<span class="sc">$</span>carrier <span class="sc">%in%</span> airlines, </span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>                          flights<span class="sc">$</span>carrier, <span class="st">"Other"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>avg_dep_delay <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">"SELECT origin, </span></span>
+<span id="cb21-2"><a href="#cb21-2" aria-hidden="true" tabindex="-1"></a><span class="st">                               COUNT(*) AS num_flights, </span></span>
+<span id="cb21-3"><a href="#cb21-3" aria-hidden="true" tabindex="-1"></a><span class="st">                               AVG(dep_delay) AS avg_dep_delay</span></span>
+<span id="cb21-4"><a href="#cb21-4" aria-hidden="true" tabindex="-1"></a><span class="st">                        FROM flights</span></span>
+<span id="cb21-5"><a href="#cb21-5" aria-hidden="true" tabindex="-1"></a><span class="st">                        GROUP BY origin</span></span>
+<span id="cb21-6"><a href="#cb21-6" aria-hidden="true" tabindex="-1"></a><span class="st">                        ORDER BY num_flights DESC;"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>avg_dep_delay</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>  origin num_flights avg_dep_delay
+1    LGA       26682      10.83581
+2    EWR       22614      13.41770
+3    JFK       21485      13.73005</code></pre>
+</div>
+</div>
+<p>Q. What is the average arrival delay for each airport?</p>
+<p>The logic to this question is very similar to the previous except that the <code>dest</code> and <code>arr_delay</code> is used instead of <code>origin</code> and <code>dep_delay</code> respectively.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>avg_arr_delay <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">"SELECT dest, </span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a><span class="st">                               COUNT(*) AS num_flights, </span></span>
+<span id="cb24-3"><a href="#cb24-3" aria-hidden="true" tabindex="-1"></a><span class="st">                               AVG(arr_delay) AS avg_arr_delay</span></span>
+<span id="cb24-4"><a href="#cb24-4" aria-hidden="true" tabindex="-1"></a><span class="st">                        FROM flights</span></span>
+<span id="cb24-5"><a href="#cb24-5" aria-hidden="true" tabindex="-1"></a><span class="st">                        GROUP BY dest</span></span>
+<span id="cb24-6"><a href="#cb24-6" aria-hidden="true" tabindex="-1"></a><span class="st">                        ORDER BY num_flights DESC</span></span>
+<span id="cb24-7"><a href="#cb24-7" aria-hidden="true" tabindex="-1"></a><span class="st">                        LIMIT 15;"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>avg_arr_delay</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   dest num_flights avg_arr_delay
+1   BOS        3438     5.9398564
+2   ORD        3122     4.2192897
+3   MCO        2932     7.7469051
+4   MIA        2885     3.2115922
+5   ATL        2800     4.3634067
+6   FLL        2515     7.8836743
+7   LAX        2449     2.4705155
+8   CLT        2068     3.7313141
+9   DFW        1901     5.5391400
+10  RDU        1854     3.6706849
+11  DCA        1825    -2.4446309
+12  SFO        1742     0.9865889
+13  DTW        1618     0.8500627
+14  DEN        1575     6.5267915
+15  PBI        1556     9.2992889</code></pre>
+</div>
+</div>
+<p>Q. What is the market share of each carrier on every route?</p>
+<p>Market share is considered as the number of flights operated by the carrier divided by the total number of flights operated on that route. Initially, the total number of flights on each route are computed and is stored temporarily as <code>total_flights</code> . In the main query, the two tables: <code>flights</code> and <code>total_flights</code> are joined based on the <code>origin</code> and <code>dest</code>. The market share is computed as a proportion of flights operated by the carrier from the total number of flights between <code>origin</code> and <code>dest</code>.</p>
+<p>Note: In SQL, when computing percentages, it is important to use 100.0 instead of 100 to get the percentage with decimal value precision.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>mk_share <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">"WITH total_flights AS (</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="st">                        SELECT origin, </span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a><span class="st">                               dest,</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a><span class="st">                               COUNT(*) AS num_flights</span></span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="st">                         FROM flights</span></span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a><span class="st">                         GROUP BY origin, dest</span></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a><span class="st">                         ORDER BY num_flights</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a><span class="st">                         )</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a><span class="st">                    </span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a><span class="st">                   SELECT flights.origin,</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a><span class="st">                          flights.dest,</span></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="st">                          carrier,</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="st">                          ROUND(COUNT(*)*100.0/num_flights, 1) AS market_share</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="st">                   FROM flights JOIN total_flights</span></span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a><span class="st">                   ON flights.origin = total_flights.origin AND</span></span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a><span class="st">                      flights.dest = total_flights.dest</span></span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a><span class="st">                   GROUP BY flights.origin, flights.dest, carrier</span></span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a><span class="st">                   ORDER BY total_flights.num_flights DESC;"</span></span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>                  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>mk_share_wide <span class="ot">&lt;-</span> mk_share <span class="sc">|&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> carrier, <span class="at">values_from =</span> market_share)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>mk_share_wide <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">15</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 15 × 9
+   origin dest     AA    DL Other    UA    YX    B6    WN
+   &lt;chr&gt;  &lt;chr&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;
+ 1 LGA    ORD    38.2  22.5   9    21.1   9.2  NA    NA  
+ 2 JFK    LAX    31.9  29.8  NA    NA    NA    38.3  NA  
+ 3 LGA    BOS    NA     9.9  NA    NA    41.8  48.3  NA  
+ 4 LGA    ATL     0.1  59.7   4.7  NA    17.6  NA    17.9
+ 5 EWR    MCO    NA    NA    21.3  57.7  NA    21    NA  
+ 6 LGA    DCA    34.5  NA    NA    NA    65.5  NA    NA  
+ 7 JFK    BOS    NA    15.3   4.6  NA    35    45.1  NA  
+ 8 JFK    SFO    19.6  28.8  21.5  NA    NA    30.2  NA  
+ 9 JFK    MIA    54.1  22.3  NA    NA    NA    23.6  NA  
+10 EWR    FLL    NA    NA    25.3  50.5  NA    24.1  NA  
+11 LGA    DFW    70    24.8   5.2  NA    NA    NA    NA  
+12 LGA    MIA    58.3  23.5  18.2  NA    NA    NA    NA  
+13 EWR    ATL    NA    47.6  12.1  35.6   4.7  NA    NA  
+14 LGA    MCO    NA    36.2  24.8  NA    NA    36.4   2.5
+15 EWR    ORD    32.4  NA     4.3  63.2  NA    NA    NA  </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>fill_color <span class="ot">=</span> <span class="fu">c</span>(<span class="st">"DL"</span> <span class="ot">=</span> <span class="st">"#EE7663"</span>, <span class="st">"AA"</span> <span class="ot">=</span> <span class="st">"#A0BEF5"</span>, <span class="st">"WN"</span> <span class="ot">=</span> <span class="st">"lightgreen"</span>,</span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>               <span class="st">"UA"</span> <span class="ot">=</span> <span class="st">"cornflowerblue"</span>, <span class="st">"B6"</span> <span class="ot">=</span> <span class="st">"gold"</span>, <span class="st">"Other"</span> <span class="ot">=</span> <span class="st">"#91AFB3"</span>,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>               <span class="st">"YX"</span> <span class="ot">=</span> <span class="st">"#85decb"</span>)</span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb31-5"><a href="#cb31-5" aria-hidden="true" tabindex="-1"></a>mk_share_wide <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">15</span>) <span class="sc">|&gt;</span></span>
+<span id="cb31-6"><a href="#cb31-6" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(<span class="st">"origin"</span>, <span class="st">"dest"</span>), </span>
+<span id="cb31-7"><a href="#cb31-7" aria-hidden="true" tabindex="-1"></a>                              <span class="at">names_to =</span> <span class="st">"carrier"</span>, </span>
+<span id="cb31-8"><a href="#cb31-8" aria-hidden="true" tabindex="-1"></a>                              <span class="at">values_to =</span> <span class="st">"market_share"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb31-9"><a href="#cb31-9" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">paste</span>(origin, <span class="st">" to "</span>, dest), </span>
+<span id="cb31-10"><a href="#cb31-10" aria-hidden="true" tabindex="-1"></a>                            <span class="at">y =</span> market_share, <span class="at">fill =</span> carrier)) <span class="sc">+</span></span>
+<span id="cb31-11"><a href="#cb31-11" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">geom_col</span>(<span class="at">position =</span> <span class="st">"stack"</span>) <span class="sc">+</span></span>
+<span id="cb31-12"><a href="#cb31-12" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> market_share), </span>
+<span id="cb31-13"><a href="#cb31-13" aria-hidden="true" tabindex="-1"></a>                           <span class="at">position =</span> <span class="fu">position_stack</span>(<span class="at">vjust =</span> .<span class="dv">5</span>),</span>
+<span id="cb31-14"><a href="#cb31-14" aria-hidden="true" tabindex="-1"></a>                           <span class="at">size =</span> <span class="fl">3.5</span>) <span class="sc">+</span></span>
+<span id="cb31-15"><a href="#cb31-15" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> fill_color) <span class="sc">+</span></span>
+<span id="cb31-16"><a href="#cb31-16" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Marketshare of Carrier by Route"</span>, </span>
+<span id="cb31-17"><a href="#cb31-17" aria-hidden="true" tabindex="-1"></a>                      <span class="at">x =</span> <span class="st">"Route"</span>, </span>
+<span id="cb31-18"><a href="#cb31-18" aria-hidden="true" tabindex="-1"></a>                      <span class="at">y =</span> <span class="st">"Market Share (%)"</span>) <span class="sc">+</span> </span>
+<span id="cb31-19"><a href="#cb31-19" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb31-20"><a href="#cb31-20" aria-hidden="true" tabindex="-1"></a>                 <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 53 rows containing missing values or values outside the scale range
+(`geom_col()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 53 rows containing missing values or values outside the scale range
+(`geom_text()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="community-contribution_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="768"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>If a carrier has significantly higher market share on a particular route, then it is highly probable that the carrier has a hub at either the origin or destination airport. For example, United Airlines does not have any flight departing from JFK or LGA. Hence, it has a hub at EWR airport.</p>
+<p>Q. What is the age of the plane operating the flight?</p>
+<p>The age of the plane corresponds to the difference between the current year and the year in which it came into service. The two tables flights and planes are joined together based on the tail number of plane (foreign key) and the difference between <code>flights.year</code> and <code>planes.year</code> is computed. The planes for which the which the year of start of service is not provided are ignored in the calculation.</p>
+<p>The final result is sorted in descending order of the <code>dep_delay</code> .</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a>plane_age <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">"SELECT origin, </span></span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a><span class="st">                           dest,</span></span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a><span class="st">                           sched_dep_time,</span></span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a><span class="st">                           flights.tailnum, </span></span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a><span class="st">                           planes.year AS service_start_year,</span></span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a><span class="st">                           flights.year - planes.year AS age_of_plane,</span></span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a><span class="st">                           dep_delay,</span></span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a><span class="st">                           arr_delay</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a><span class="st">                    FROM flights JOIN planes </span></span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a><span class="st">                    ON flights.tailnum = planes.tailnum</span></span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a><span class="st">                    WHERE service_start_year IS NOT NULL</span></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a><span class="st">                    ORDER BY dep_delay DESC;"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>plane_age <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">15</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   origin dest sched_dep_time tailnum service_start_year age_of_plane dep_delay
+1     LGA  DFW           1700  N967AN               2001           22      1665
+2     JFK  STT           1241  N8001N               2013           10      1201
+3     LGA  DEN           1215  N47281               2022            1      1181
+4     EWR  MSP           1500  N241SY               2016            7      1169
+5     LGA  ATL           1340  N336NW               1992           31      1097
+6     JFK  SLC           1630  N394DA               2000           23      1074
+7     EWR  DTW            555  N955AT               2000           23      1057
+8     EWR  ATL           1400  N350NA               1993           30      1043
+9     LGA  ATL           1555  N366NW               1999           24      1038
+10    JFK  MIA           1955  N118DY               2021            2      1027
+11    JFK  ORD           1600  N261SY               2017            6      1010
+12    LGA  MIA           1759  N310FR               2017            6      1006
+13    LGA  ORD           1915  N145SY               2015            8       996
+14    EWR  SLC           1843  N849DN               2015            8       974
+15    JFK  SFO            730  N556AS               2006           17       967
+   arr_delay
+1       1647
+2       1193
+3       1170
+4       1183
+5       1082
+6       1073
+7       1035
+8       1044
+9       1009
+10      1008
+11      1012
+12       961
+13      1016
+14       970
+15       982</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>plane_age <span class="sc">|&gt;</span> </span>
+<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> age_of_plane, <span class="at">y =</span> dep_delay, <span class="at">color =</span> arr_delay)) <span class="sc">+</span></span>
+<span id="cb37-3"><a href="#cb37-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">1.5</span>) <span class="sc">+</span></span>
+<span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Age of plane vs. Departure delay"</span>,</span>
+<span id="cb37-5"><a href="#cb37-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"filled with arrival delay"</span>,</span>
+<span id="cb37-6"><a href="#cb37-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Age of plane (in years)"</span>, </span>
+<span id="cb37-7"><a href="#cb37-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Departure delay (in minutes)"</span>) <span class="sc">+</span></span>
+<span id="cb37-8"><a href="#cb37-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 905 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="community-contribution_files/figure-html/unnamed-chunk-20-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>From the plot, it is not certain that if the plane is old, there will be a delay.</p>
+<p>Q. What is the visibility at the time of take-off for every flight?</p>
+<p>Visibility is a key factor that can lead to flights taking off late or arriving late. It is basically refers to how clearly the ground is visible. Visibility is denoted by <code>visib</code> column in the <code>weather</code> data frame. The values of visibility are only reported for the origin airport on an hourly basis. Therefore, the flights and weather columns are joined based on the <code>origin</code>. At this point, all the instances of the flight are mapped to the 24 hourly readings of visibility. This result is filtered by checking whether the <code>month</code>, <code>day</code>, and <code>hour</code> of flight match.</p>
+<p>The <code>hour</code> is not provided explicitly in the <code>flights</code> data frame but it is be derived from the <code>sched_dep_time</code> column. The <code>sched_dep_time</code> provides an integer which indicates the scheduled time of departure. If the scheduled time of departure is 23:10, then the <code>sched_dep_time</code> column holds 2310 in integer format. The hour is derived by dividing the value in <code>sched_dep_time</code> by 100 and rounding it off to the nearest integer. The resultant value is compared with the <code>hour</code> column of the <code>weather</code> data frame.</p>
+<p>All rows in the result are sorted in ascending order of <code>visibility</code> and descending order of <code>dep_delay</code>.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>visib <span class="ot">&lt;-</span> <span class="fu">sqldf</span>(<span class="st">"SELECT flights.origin, </span></span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="st">                       dest, </span></span>
+<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a><span class="st">                       visib AS visibility,</span></span>
+<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a><span class="st">                       dep_delay,</span></span>
+<span id="cb39-5"><a href="#cb39-5" aria-hidden="true" tabindex="-1"></a><span class="st">                       arr_delay</span></span>
+<span id="cb39-6"><a href="#cb39-6" aria-hidden="true" tabindex="-1"></a><span class="st">                FROM flights JOIN weather </span></span>
+<span id="cb39-7"><a href="#cb39-7" aria-hidden="true" tabindex="-1"></a><span class="st">                ON flights.origin = weather.origin</span></span>
+<span id="cb39-8"><a href="#cb39-8" aria-hidden="true" tabindex="-1"></a><span class="st">                WHERE flights.month = weather.month AND</span></span>
+<span id="cb39-9"><a href="#cb39-9" aria-hidden="true" tabindex="-1"></a><span class="st">                      flights.day = weather.day AND</span></span>
+<span id="cb39-10"><a href="#cb39-10" aria-hidden="true" tabindex="-1"></a><span class="st">                      ROUND(flights.sched_dep_time/100) = weather.hour AND</span></span>
+<span id="cb39-11"><a href="#cb39-11" aria-hidden="true" tabindex="-1"></a><span class="st">                      visib IS NOT NULL</span></span>
+<span id="cb39-12"><a href="#cb39-12" aria-hidden="true" tabindex="-1"></a><span class="st">                ORDER BY visib ASC;"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a>visib <span class="sc">|&gt;</span> <span class="fu">head</span>(<span class="dv">15</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>   origin dest visibility dep_delay arr_delay
+1     JFK  MIA       0.24        -6        -6
+2     JFK  ATL       0.24       151       126
+3     JFK  SJU       0.24        -2        -8
+4     JFK  TPA       0.24        18        28
+5     JFK  SLC       0.24        20        26
+6     JFK  MIA       0.24        25        10
+7     JFK  MIA       0.24        -3        11
+8     JFK  LAS       0.24        -2        15
+9     JFK  BQN       0.24        -2         2
+10    EWR  GSO       0.24         0         2
+11    EWR  LAS       0.24         0        -6
+12    EWR  RDU       0.24        -7       -11
+13    EWR  AUS       0.24        -5       -20
+14    EWR  PBI       0.24         1         0
+15    EWR  ORD       0.24        26        27</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>visib <span class="sc">|&gt;</span> </span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> visibility, <span class="at">y =</span> dep_delay, <span class="at">color =</span> arr_delay)) <span class="sc">+</span></span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">alpha =</span> <span class="fl">0.9</span>) <span class="sc">+</span></span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Visibility vs. Departure delay"</span>, </span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"filled with arrival delay"</span>,</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">x =</span> <span class="st">"Visibility (in miles)"</span>, </span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Departure delay (in minutes)"</span>) <span class="sc">+</span></span>
+<span id="cb42-8"><a href="#cb42-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 890 rows containing missing values or values outside the scale range
+(`geom_point()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="community-contribution_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>The delays because of bad visibility are not very high enough. Rather, the maximum delays are at a very high visibility of 10 miles which means there is some other reason for the delays.</p>
+</section>
+</section>
+<section id="conclusion" class="level2">
+<h2 class="anchored" data-anchor-id="conclusion">Conclusion</h2>
+<p>This notebook discusses the availability of an open-source library that can provide actual flight information for any given set of origin airports, months, and a specific year.</p>
+<p>All the data manipulation was carried out using SQL. However, all the above SQL queries can be written in R code using the <code>dplyr</code> library. Both the methods give the same results and choosing which one to use is completely your choice.</p>
+<p>In addition to performing using SQL within R, this notebook also gives an idea on how to simple select queries in SQL.</p>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
