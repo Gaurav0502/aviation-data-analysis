@@ -19,7 +19,7 @@ The `anyflights()` from the `anyflights` package is used to obtain data of the d
 
 ## Important links
 
-Youtube Video link: https://www.youtube.com/watch?v=1WWv2-uxRGg
+Youtube Video link: https://youtu.be/vy06h_f_Sk8
 
 Rendered QMD file: https://gaurav0502.github.io/aviation-data-analysis/
 
